@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//Usuario de la aplicación
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  email     String     @unique
+  password  String
+  name      String
+  lastName  String
+  role      String     @default("user")
+  phone     String?
+  addresses Address[]  // Relación 1:N con direcciones
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+// Direcciones del usuario
+model Address {
+  id         String  @id @default(uuid()) @db.Uuid
+  street     String
+  postalCode String
+  city       String
+  province   String
+  country    String
+  userId     String @db.Uuid
+  user       User    @relation(fields: [userId], references: [id])
+}
+
+// Producto
+model Product {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String
+  slug              String    
+  description       String
+  price             Decimal   @db.Decimal(10,2)
+  stock             Int       
+  category          String
+  discountPercentage Decimal? @db.Decimal(5,2)
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  images            Image[]   // Relación 1:N con imágenes
+}
+
+// Imagenes del producto
+model Image {
+  id        String   @id @default(uuid()) @db.Uuid
+  url       String
+  productId String   @db.Uuid
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Category {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String
+  // productId String @unique @db.Uuid
+  // product   Product @relation(fields: [productId], references: [id])
+}
