@@ -1,78 +1,56 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
-import { handlePrismaError } from 'src/common/utils/handle-prisma-error';
+import { generateSlug } from 'src/common/utils/generate-slug';
 
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createProductDto: CreateProductDto) {
-    try {
-      const name = createProductDto.name.trim();
-      const slug = name
-        .toLowerCase()
-        .normalize('NFD') // para quitar tildes
-        .replace(/[\u0300-\u036f]/g, '') // remueve caracteres acentuados
-        .replace(/[^a-z0-9 ]/g, '') // remueve caracteres especiales
-        .replace(/\s+/g, '-');
-      const data = { ...createProductDto, name, slug };
-      return await this.prisma.product.create({
-        data,
-        include: { images: true },
-      });
-    } catch (error) {
-      handlePrismaError(error);
-    }
+    const name = createProductDto.name.trim();
+    const slug = generateSlug(name);
+
+    return this.prisma.product.create({
+      data: { ...createProductDto, name, slug },
+      include: { images: true },
+    });
   }
 
   async findAll() {
-    try {
-      return await this.prisma.product.findMany({
-        include: { images: true },
-      });
-    } catch (error) {
-      handlePrismaError(error);
-    }
+    return this.prisma.product.findMany({
+      include: { images: true },
+    });
   }
 
   async findOne(id: string) {
-    // try {
-      const product = await this.prisma.product.findUnique({
-        where: { id },
-        include: { images: true },
-      });
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: { images: true },
+    });
 
-      if (!product) {
-        throw new NotFoundException(`Producto con ID ${id} no encontrado`);
-      }
+    if (!product) {
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+    }
 
-      return product;
-    // } catch (error) {
-    //   handlePrismaError(error);
-    // }
+    return product;
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
-    // await this.findOne(id);
-    try {
-      return await this.prisma.product.update({
-        where: { id },
-        data: updateProductDto,
-        include: { images: true },
-      });
-    } catch (error) {
-      handlePrismaError(error);
-    }
+    await this.findOne(id);
+
+    return this.prisma.product.update({
+      where: { id },
+      data: updateProductDto,
+      include: { images: true },
+    });
   }
 
   async remove(id: string) {
-    try {
-      return await this.prisma.product.delete({
-        where: { id },
-      });
-    } catch (error) {
-      handlePrismaError(error);
-    }
+    await this.findOne(id);
+
+    return this.prisma.product.delete({
+      where: { id },
+    });
   }
 }
