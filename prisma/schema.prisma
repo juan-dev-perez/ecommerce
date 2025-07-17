@@ -35,37 +35,40 @@ model Address {
   city       String
   province   String
   country    String
-  userId     String @db.Uuid
+  userId     String  @db.Uuid
   user       User    @relation(fields: [userId], references: [id])
 }
 
 // Producto
 model Product {
-  id                String    @id @default(uuid()) @db.Uuid
-  name              String
-  slug              String    
-  description       String
-  price             Decimal   @db.Decimal(10,2)
-  stock             Int       
-  category          String
-  discountPercentage Decimal? @db.Decimal(5,2)
-  isActive          Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  images            Image[]   // Relación 1:N con imágenes
+  id                 Int       @id @default(autoincrement())
+  name               String
+  slug               String    
+  description        String
+  price              Decimal   @db.Decimal(10,2)
+  stock              Int       
+  discountPercentage Decimal?  @db.Decimal(5,2)
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  images             Image[]   // Relación 1:N con imágenes
+  categories         Category[] // Relacion M:M
 }
 
 // Imagenes del producto
 model Image {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        Int      @id @default(autoincrement())
   url       String
-  productId String   @db.Uuid
+  productId Int   
   product   Product  @relation(fields: [productId], references: [id])
 }
 
 model Category {
-  id        String @id @default(uuid()) @db.Uuid
+  id        Int       @id @default(autoincrement())
   name      String
-  // productId String @unique @db.Uuid
-  // product   Product @relation(fields: [productId], references: [id])
+  // slug      String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products   Product[] 
 }
