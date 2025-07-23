@@ -23,7 +23,7 @@ export class ProductService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: number) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: { images: true },
@@ -36,7 +36,7 @@ export class ProductService {
     return product;
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: number, updateProductDto: UpdateProductDto) {
     await this.findOne(id);
 
     return this.prisma.product.update({
@@ -46,7 +46,7 @@ export class ProductService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: number) {
     await this.findOne(id);
 
     return this.prisma.product.delete({

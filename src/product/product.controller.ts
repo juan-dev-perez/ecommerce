@@ -18,20 +18,20 @@ export class ProductController {
   }
 
   @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<Product> {
+  findOne(@Param('id') id: number): Promise<Product> {
     return this.productService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto
   ): Promise<Product> {
-    return this.productService.update(id, updateProductDto);
+    return this.productService.update(+id, updateProductDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', new ParseUUIDPipe()) id: string): Promise<Product> {
-    return this.productService.remove(id);
+  remove(@Param('id') id: string): Promise<Product> {
+    return this.productService.remove(+id);
   }
 }
