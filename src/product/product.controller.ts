@@ -16,7 +16,6 @@ export class ProductController {
   @Get()
   async findAll( @Query() paginationDto: PaginationDto ) {
     const result = await this.productService.findAll(paginationDto);
-    console.log(result);
     return result;
   }
 
