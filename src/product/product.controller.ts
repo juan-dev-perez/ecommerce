@@ -18,7 +18,6 @@ export class ProductController {
     const result = await this.productService.findAll(paginationDto);
     console.log(result);
     return result;
-    
   }
 
   @Get(':id')
