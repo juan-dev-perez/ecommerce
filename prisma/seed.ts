@@ -8,11 +8,11 @@ async function main() {
 
   const createdCategories = await prisma.category.createMany({
     data: [
-      { name: 'microprocesadores' },
-      { name: 'motherboards' },
-      { name: 'memoria ram' },
-      { name: 'almacenamiento' },
-      { name: 'fuentes de poder' },
+      { name: 'microprocesadores', slug: 'microprocesadores' },
+      { name: 'motherboards', slug: 'motherboards' },
+      { name: 'memoria ram',slug: 'memoria-ram' },
+      { name: 'almacenamiento', slug: 'almacenamiento' },
+      { name: 'fuentes de poder', slug: 'fuentes-de-poder' },
     ],
   });
 
