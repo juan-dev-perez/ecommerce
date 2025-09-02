@@ -36,22 +36,24 @@ model User {
 
 // Producto
 model Product {
-  id                 Int        @id @default(autoincrement())
+  id                 Int       @id @default(autoincrement())
   name               String
   slug               String
   description        String
   cost               Decimal?
-  price              Decimal    @db.Decimal(10, 2)
-  promotionalPrice   Decimal?   @db.Decimal(10, 2)
-  discountPercentage Decimal?   @db.Decimal(5, 2)
+  price              Decimal   @db.Decimal(10, 2)
+  promotionalPrice   Decimal?  @db.Decimal(10, 2)
+  discountPercentage Decimal?  @db.Decimal(5, 2)
   stock              Int
-  isActive           Boolean    @default(true)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-  brand              Brand?     @relation(fields: [brandId], references: [id])
-  brandId            Int?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
   images             Image[] // Relación 1:N con imágenes
-  categories         Category[] // Relacion M:M
+  brand              Brand?    @relation(fields: [brandId], references: [id])
+  brandId            Int?
+  categoryId         Int?
+  category           Category? @relation(fields: [categoryId], references: [id])
 }
 
 model Brand {
@@ -72,11 +74,15 @@ model Image {
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
-  name      String
-  slug      String
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  products  Product[]
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  parentId    Int?
+  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  subCategory Category[] @relation("SubCategories")
+  product     Product[]
 }
