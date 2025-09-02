@@ -1,22 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { ProductService } from './product.service';
-import { CreateProductDto, UpdateProductDto } from './dto';
+import { CreateProductDto, FilterProductPaginationDto, UpdateProductDto } from './dto';
 import { Product } from '@prisma/client';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 
-@Controller('product')
+@Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
+
+  @Get()
+  findAll(@Query() filters : FilterProductPaginationDto) {
+    return this.productService.findAll(filters);
+  }
 
   @Post()
   create(@Body() createProductDto: CreateProductDto): Promise<Product> {
     return this.productService.create(createProductDto);
-  }
-
-  @Get()
-  async findAll( @Query() paginationDto: PaginationDto ) {
-    const result = await this.productService.findAll(paginationDto);
-    return result;
   }
 
   @Get(':id')
@@ -27,7 +34,7 @@ export class ProductController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateProductDto: UpdateProductDto
+    @Body() updateProductDto: UpdateProductDto,
   ): Promise<Product> {
     return this.productService.update(+id, updateProductDto);
   }

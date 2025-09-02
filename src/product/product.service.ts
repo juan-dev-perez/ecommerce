@@ -1,42 +1,103 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateProductDto, UpdateProductDto } from './dto';
+import {
+  CreateProductDto,
+  FilterProductPaginationDto,
+  UpdateProductDto,
+} from './dto';
 import { generateSlug } from 'src/common/utils/generate-slug';
-import { PaginationDto } from '../common/dto/pagination.dto';
+import { CategoriesService } from '../categories/categories.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly categoriesService: CategoriesService,
+  ) {}
 
-  async create(createProductDto: CreateProductDto) {
-    const name = createProductDto.name.trim();
-    const slug = generateSlug(name);
+  async findAll(filters: FilterProductPaginationDto) {
+    const { page, limit, category, brand, priceMin, priceMax } = filters;
 
-    return this.prisma.product.create({
-      data: { ...createProductDto, name, slug },
-      include: { images: true },
-    });
-  }
+    const where: Prisma.ProductWhereInput = {
+      isActive: true,
+    };
 
-  async findAll(paginationDto: PaginationDto) {
-    const { page, limit } = paginationDto;
-    const skip = (page - 1) * limit;
-    const total = await this.prisma.product.count();
-    const lastPage = Math.ceil( total / limit );
+    if (category) {
+      const categoryIds =
+        await this.categoriesService.getCategoryAndDescendantIds(category);
+      if (categoryIds.length > 0) {
+        where.categoryId = { in: categoryIds };
+      } else {
+        return { data: [], meta: { total: 0, page, lastPage: 1 } };
+      }
+    }
 
-    const result = await this.prisma.product.findMany({
-      include: { images: true },
-      skip,
-      take: limit,
-    });
+    if (brand) {
+      where.brand = {
+        slug: brand,
+      };
+    }
+
+    if (priceMin || priceMax) {
+      where.price = {};
+      if (priceMin) {
+        where.price.gte = priceMin; // gte = Greater Than or Equal (>=)
+      }
+      if (priceMax) {
+        where.price.lte = priceMax; // lte = Less Than or Equal (<=)
+      }
+    }
+
+    const [total, products] = await this.prisma.$transaction([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        take: limit,
+        skip: (page - 1) * limit,
+        include: {
+          category: { select: { name: true, slug: true } },
+          brand: { select: { name: true, slug: true } }, // Incluir marca si existe
+          images: true
+        },
+        orderBy: {
+          createdAt: 'desc', // O por el criterio que prefieras
+        },
+      }),
+    ]);
+
+    const lastPage = Math.ceil(total / limit);
 
     return {
-      data: result,
+      data: products,
       meta: {
+        total,
         page,
-        lastPage
+        lastPage,
       },
     };
+  }
+
+  async create(createProductDto: CreateProductDto) {
+    const { category: categoryId, ...productData } = createProductDto;
+    const name = productData.name.trim();
+    const slug = generateSlug(name);
+
+    const newProduct = await this.prisma.product.create({
+      data: {
+        ...productData,
+        name,
+        slug,
+        category: {
+          connect: {
+            id: categoryId,
+          },
+        },
+      },
+      include: { images: true },
+    });
+
+    return newProduct;
   }
 
   async findOne(id: number) {
@@ -53,11 +114,19 @@ export class ProductService {
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
+    const { category: categoryId } = updateProductDto;
     await this.findOne(id);
 
     return this.prisma.product.update({
       where: { id },
-      data: updateProductDto,
+      data: {
+        ...updateProductDto,
+        category: {
+          connect: {
+            id: categoryId,
+          },
+        },
+      },
       include: { images: true },
     });
   }

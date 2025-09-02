@@ -67,8 +67,10 @@ async function main() {
             ? parseFloat((Math.random() * 30).toFixed(2))
             : null,
         isActive: true,
-        categories: {
-          connect: [{ id: randomCategory.id }],
+        category: {
+          connect: {
+            id: randomCategory.id,
+          },
         },
         images: {
           create: [

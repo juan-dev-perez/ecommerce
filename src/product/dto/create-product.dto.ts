@@ -1,3 +1,4 @@
+import { Category } from "@prisma/client";
 import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Max, Min, MinLength } from "class-validator";
 
 export class CreateProductDto {
@@ -19,9 +20,9 @@ export class CreateProductDto {
     @IsPositive()
     stock: number;
 
-    @IsString()
+    @IsNumber()
     @IsOptional()
-    category: string;
+    category?: number;
 
     @IsOptional()
     @IsNumber()
