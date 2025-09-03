@@ -13,53 +13,44 @@ model User {
   password  String
   name      String
   lastName  String
-  phone     String?
-  addresses String?
   role      String   @default("user")
-  isActive  Boolean  @default(true)
+  phone     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  addresses String?
+  isActive  Boolean  @default(true)
 }
 
-// Direcciones del usuario
-// Mas adelante ver esta posibilidad
-// model Address {
-//   id         String  @id @default(uuid()) @db.Uuid
-//   street     String
-//   postalCode String
-//   city       String
-//   province   String
-//   country    String
-//   userId     String  @db.Uuid
-//   user       User    @relation(fields: [userId], references: [id])
-// }
-
-// Producto
 model Product {
-  id                 Int       @id @default(autoincrement())
+  id                 Int                      @id @default(autoincrement())
   name               String
   slug               String
   description        String
   cost               Decimal?
-  price              Decimal   @db.Decimal(10, 2)
-  promotionalPrice   Decimal?  @db.Decimal(10, 2)
-  discountPercentage Decimal?  @db.Decimal(5, 2)
+  price              Decimal                  @db.Decimal(10, 2)
+  promotionalPrice   Decimal?                 @db.Decimal(10, 2)
+  discountPercentage Decimal?                 @db.Decimal(5, 2)
   stock              Int
-  isActive           Boolean   @default(true)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  images             Image[] // Relación 1:N con imágenes
-  brand              Brand?    @relation(fields: [brandId], references: [id])
+  isActive           Boolean                  @default(true)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  
+  images             Image[]
   brandId            Int?
+  brand              Brand?                   @relation(fields: [brandId], references: [id])
   categoryId         Int?
-  category           Category? @relation(fields: [categoryId], references: [id])
+  category           Category?                @relation(fields: [categoryId], references: [id])
+  
+  search_vector      Unsupported("tsvector")?
+
+  @@index([search_vector], type: Gin)
 }
 
 model Brand {
   id        Int       @id @default(autoincrement())
   name      String
   slug      String
+  logo      String
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -67,7 +58,7 @@ model Brand {
 }
 
 model Image {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   url       String
   productId Int?
   product   Product? @relation(fields: [productId], references: [id])

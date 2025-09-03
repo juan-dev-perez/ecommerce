@@ -34,4 +34,8 @@ export class FilterProductPaginationDto {
   @Min(0)
   @Type(() => Number)
   priceMax?: number;
+
+  @IsOptional() 
+  @IsString()   
+  search?: string;
 }

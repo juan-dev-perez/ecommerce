@@ -17,20 +17,36 @@ export class ProductService {
   ) {}
 
   async findAll(filters: FilterProductPaginationDto) {
-    const { page, limit, category, brand, priceMin, priceMax } = filters;
+    const { page, limit, category, brand, priceMin, priceMax, search } =
+      filters;
 
     const where: Prisma.ProductWhereInput = {
       isActive: true,
     };
 
+    if (search) {
+      const formattedQuery = search
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .join(' & ');
+      (where as any).search_vector = {
+        search: formattedQuery,
+      };
+    }
+
     if (category) {
-      const categoryIds =
-        await this.categoriesService.getCategoryAndDescendantIds(category);
-      if (categoryIds.length > 0) {
-        where.categoryId = { in: categoryIds };
-      } else {
+      const categoryIds = await this.categoriesService
+        .getCategoryAndDescendantIds(category)
+        .catch(error => {
+          console.log(`Filtro por categoría no existente: ${category}. Devolviendo 0 resultados.`);
+          return [];
+        });
+
+      if (categoryIds.length === 0) {
         return { data: [], meta: { total: 0, page, lastPage: 1 } };
       }
+      where.categoryId = { in: categoryIds };
     }
 
     if (brand) {
@@ -42,10 +58,10 @@ export class ProductService {
     if (priceMin || priceMax) {
       where.price = {};
       if (priceMin) {
-        where.price.gte = priceMin; // gte = Greater Than or Equal (>=)
+        where.price.gte = priceMin;
       }
       if (priceMax) {
-        where.price.lte = priceMax; // lte = Less Than or Equal (<=)
+        where.price.lte = priceMax;
       }
     }
 
@@ -57,11 +73,11 @@ export class ProductService {
         skip: (page - 1) * limit,
         include: {
           category: { select: { name: true, slug: true } },
-          brand: { select: { name: true, slug: true } }, // Incluir marca si existe
-          images: true
+          brand: { select: { name: true, slug: true } },
+          images: { take: 1, select: { url: true } },
         },
         orderBy: {
-          createdAt: 'desc', // O por el criterio que prefieras
+          createdAt: 'desc',
         },
       }),
     ]);
