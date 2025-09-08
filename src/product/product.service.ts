@@ -20,9 +20,7 @@ export class ProductService {
     const { page, limit, category, brand, priceMin, priceMax, search } =
       filters;
 
-    const where: Prisma.ProductWhereInput = {
-      isActive: true,
-    };
+    const conditions: Prisma.Sql[] = [Prisma.sql`"isActive" = true`];
 
     if (search) {
       const formattedQuery = search
@@ -30,69 +28,79 @@ export class ProductService {
         .split(' ')
         .filter(Boolean)
         .join(' & ');
-      (where as any).search_vector = {
-        search: formattedQuery,
-      };
+      conditions.push(
+        Prisma.sql`"search_vector" @@ to_tsquery('spanish', ${formattedQuery})`,
+      );
     }
 
     if (category) {
       const categoryIds = await this.categoriesService
         .getCategoryAndDescendantIds(category)
-        .catch(error => {
-          console.log(`Filtro por categoría no existente: ${category}. Devolviendo 0 resultados.`);
+        .catch((error) => {
+          console.log(
+            `Filtro por categoría no existente: ${category}. Devolviendo 0 resultados.`,
+          );
           return [];
         });
 
       if (categoryIds.length === 0) {
         return { data: [], meta: { total: 0, page, lastPage: 1 } };
       }
-      where.categoryId = { in: categoryIds };
+      conditions.push(
+        Prisma.sql`"categoryId" IN (${Prisma.join(categoryIds)})`,
+      );
     }
 
     if (brand) {
-      where.brand = {
-        slug: brand,
+      conditions.push(
+        Prisma.sql`"brandId" = (SELECT "id" FROM "public"."Brand" WHERE "slug" = ${brand})`,
+      );
+    }
+
+    if (priceMin) {
+      conditions.push(Prisma.sql`"price" >= ${priceMin}`);
+    }
+    if (priceMax) {
+      conditions.push(Prisma.sql`"price" <= ${priceMax}`);
+    }
+
+    const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`;
+
+    const baseQuery = Prisma.sql`FROM "public"."Product" ${whereClause}`;
+
+    const countQuery = Prisma.sql`SELECT COUNT(*) ${baseQuery}`;
+    const dataQuery = Prisma.sql`SELECT "id" ${baseQuery} ORDER BY "createdAt" DESC LIMIT ${limit} OFFSET ${(page - 1) * limit}`;
+
+    const [totalResult, productsResult] = await this.prisma.$transaction([
+      this.prisma.$queryRaw<{ count: bigint }[]>(countQuery),
+      this.prisma.$queryRaw<{ id: number }[]>(dataQuery),
+    ]);
+
+    const total = Number(totalResult[0].count);
+    const productIds = productsResult.map((p) => p.id);
+
+    if (productIds.length === 0) {
+      return {
+        data: [],
+        meta: { total, page, limit, lastPage: Math.ceil(total / limit) },
       };
     }
 
-    if (priceMin || priceMax) {
-      where.price = {};
-      if (priceMin) {
-        where.price.gte = priceMin;
-      }
-      if (priceMax) {
-        where.price.lte = priceMax;
-      }
-    }
+    const productsWithRelations = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: {
+        category: { select: { name: true, slug: true } },
+        brand: { select: { name: true, slug: true } },
+        images: { select: { url: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    const { search_vector, ...countWhere } = where as any;
-
-    const [ products] = await this.prisma.$transaction([
-      // this.prisma.product.count({ where: countWhere }),
-      this.prisma.product.findMany({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        include: {
-          category: { select: { name: true, slug: true } },
-          brand: { select: { name: true, slug: true } },
-          images: { take: 1, select: { url: true } },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-    ]);
-
-    // const lastPage = Math.ceil(total / limit);
+    const lastPage = Math.ceil(total / limit);
 
     return {
-      data: products,
-      meta: {
-        // total,
-        page,
-        // lastPage,
-      },
+      data: productsWithRelations,
+      meta: { total, page, lastPage },
     };
   }
 
