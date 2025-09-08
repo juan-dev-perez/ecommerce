@@ -42,7 +42,6 @@ model Product {
   category           Category?                @relation(fields: [categoryId], references: [id])
   
   search_vector      Unsupported("tsvector")?
-
   @@index([search_vector], type: Gin)
 }
 

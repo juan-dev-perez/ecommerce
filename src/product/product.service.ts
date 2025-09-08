@@ -65,8 +65,10 @@ export class ProductService {
       }
     }
 
-    const [total, products] = await this.prisma.$transaction([
-      this.prisma.product.count({ where }),
+    const { search_vector, ...countWhere } = where as any;
+
+    const [ products] = await this.prisma.$transaction([
+      // this.prisma.product.count({ where: countWhere }),
       this.prisma.product.findMany({
         where,
         take: limit,
@@ -82,14 +84,14 @@ export class ProductService {
       }),
     ]);
 
-    const lastPage = Math.ceil(total / limit);
+    // const lastPage = Math.ceil(total / limit);
 
     return {
       data: products,
       meta: {
-        total,
+        // total,
         page,
-        lastPage,
+        // lastPage,
       },
     };
   }
