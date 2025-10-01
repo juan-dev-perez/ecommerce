@@ -17,10 +17,15 @@ export class ProductService {
   ) {}
 
   async findAll(filters: FilterProductPaginationDto) {
-    const { page, limit, category, brand, priceMin, priceMax, search } =
+    const { page, limit, category, brand, priceMin, priceMax, search, sortBy = 'createdAt', sortOrder = 'desc' } =
       filters;
 
     const conditions: Prisma.Sql[] = [Prisma.sql`"isActive" = true`];
+
+    console.log('prueba');
+    
+
+    // Inicio de filtros
 
     if (search) {
       const formattedQuery = search
@@ -64,12 +69,27 @@ export class ProductService {
       conditions.push(Prisma.sql`"price" <= ${priceMax}`);
     }
 
+    // Fin de los filtros
+
     const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`;
 
-    const baseQuery = Prisma.sql`FROM "public"."Product" ${whereClause}`;
+    // Logica de ordenamiento
 
+    const orderByMapping = {
+      createdAt: Prisma.sql`"createdAt"`,
+      price: Prisma.sql`"price"`,
+      name: Prisma.sql`"name"`
+    };
+
+    const orderByColumn = orderByMapping[sortBy] || orderByMapping.createdAt;
+    const orderByDirection = sortOrder === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
+    const orderByClause = Prisma.sql`ORDER BY ${orderByColumn} ${orderByDirection}`;
+
+    // Fin logica de ordenamiento
+
+    const baseQuery = Prisma.sql`FROM "public"."Product" ${whereClause}`;
     const countQuery = Prisma.sql`SELECT COUNT(*) ${baseQuery}`;
-    const dataQuery = Prisma.sql`SELECT "id" ${baseQuery} ORDER BY "createdAt" DESC LIMIT ${limit} OFFSET ${(page - 1) * limit}`;
+    const dataQuery = Prisma.sql`SELECT "id" ${baseQuery} ${orderByClause} LIMIT ${limit} OFFSET ${(page - 1) * limit}`;
 
     const [totalResult, productsResult] = await this.prisma.$transaction([
       this.prisma.$queryRaw<{ count: bigint }[]>(countQuery),
@@ -92,15 +112,19 @@ export class ProductService {
         category: { select: { name: true, slug: true } },
         brand: { select: { name: true, slug: true } },
         images: { select: { url: true } },
-      },
-      orderBy: { createdAt: 'desc' },
+      }
     });
+
+    // Se reordena por ultima vez
+    const sortedProducts = productIds.map(id => 
+      productsWithRelations.find(p => p.id === id)
+    );
 
     const lastPage = Math.ceil(total / limit);
 
     return {
-      data: productsWithRelations,
-      meta: { total, page, lastPage },
+      data: sortedProducts,
+      meta: { total, page, limit, lastPage },
     };
   }
 

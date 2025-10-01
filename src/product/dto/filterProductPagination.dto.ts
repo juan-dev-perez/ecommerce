@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
 
 export class FilterProductPaginationDto {
   @IsPositive()
@@ -38,4 +38,14 @@ export class FilterProductPaginationDto {
   @IsOptional() 
   @IsString()   
   search?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['price', 'createdAt', 'name'])
+  sortBy?: 'price' | 'createdAt' | 'name';
+  
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
 }
