@@ -20,10 +20,7 @@ export class ProductService {
     const { page, limit, category, brand, priceMin, priceMax, search, sortBy = 'createdAt', sortOrder = 'desc' } =
       filters;
 
-    const conditions: Prisma.Sql[] = [Prisma.sql`"isActive" = true`];
-
-    console.log('prueba');
-    
+    const conditions: Prisma.Sql[] = [Prisma.sql`"isActive" = true`];    
 
     // Inicio de filtros
 
