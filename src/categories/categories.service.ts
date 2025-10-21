@@ -2,6 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PrismaService } from '@/prisma/prisma.service';
+import { Category } from '@prisma/client';
+
+type CategoryWithCounts = Category & {
+  _count: {
+    product: number;
+  };
+};
 
 @Injectable()
 export class CategoriesService {
@@ -45,6 +52,64 @@ export class CategoriesService {
     }
 
     return ids;
+  }
+
+  async findActiveCategories() {
+    const activeCategoriesWithCounts = await this.prisma.category.findMany({
+      where: {
+        isActive: true,
+      },
+      include: {
+        _count: {
+          select: {
+            product: { where: { isActive: true } },
+          },
+        },
+      },
+    });
+
+    if (activeCategoriesWithCounts.length === 0) {
+      return [];
+    }
+
+    const categoryMap = new Map<number, CategoryWithCounts>(
+      activeCategoriesWithCounts.map((c) => [c.id, c]),
+    );
+
+    const countCache = new Map<number, number>();
+
+    function getTotalProductCount(categoryId: number): number {
+      if (countCache.has(categoryId)) {
+        return countCache.get(categoryId)!;
+      }
+
+      const category = categoryMap.get(categoryId);
+      if (!category) return 0;
+
+      let total = category._count.product;
+
+      for (const c of categoryMap.values()) {
+        if (c.parentId === categoryId) {
+          total += getTotalProductCount(c.id);
+        }
+      }
+
+      countCache.set(categoryId, total);
+      return total;
+    }
+
+    for (const category of activeCategoriesWithCounts) {
+      getTotalProductCount(category.id);
+    }
+
+    const finalVisibleCategories = activeCategoriesWithCounts.filter(
+      (category) => {
+        const totalCount = countCache.get(category.id);
+        return totalCount !== undefined && totalCount > 0;
+      },
+    );
+
+    return finalVisibleCategories;
   }
 
   create(createCategoryDto: CreateCategoryDto) {

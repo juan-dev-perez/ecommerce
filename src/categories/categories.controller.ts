@@ -14,7 +14,7 @@ export class CategoriesController {
 
   @Get()
   findAll() {
-    return this.categoriesService.findAll();
+    return this.categoriesService.findActiveCategories();
   }
 
   @Get(':id')

@@ -51,6 +51,8 @@ export class ProductService {
       conditions.push(
         Prisma.sql`"categoryId" IN (${Prisma.join(categoryIds)})`,
       );
+    }else{
+      conditions.push(Prisma.sql`"categoryId" IS NOT NULL`);
     }
 
     if (brand) {
