@@ -127,6 +127,22 @@ export class ProductService {
     };
   }
 
+  async findOfferProducts(limit: number){
+
+    return await this.prisma.product.findMany({
+      where:{
+        isActive: true,
+      },
+      take: limit,
+      include: {
+        images: {
+          select: { url: true},
+          take: 1
+        }
+      }
+    })
+  }
+
   async create(createProductDto: CreateProductDto) {
     const { category: categoryId, ...productData } = createProductDto;
     const name = productData.name.trim();

@@ -7,9 +7,14 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
-import { CreateProductDto, FilterProductPaginationDto, UpdateProductDto } from './dto';
+import {
+  CreateProductDto,
+  FilterProductPaginationDto,
+  UpdateProductDto,
+} from './dto';
 import { Product } from '@prisma/client';
 
 @Controller('products')
@@ -17,8 +22,15 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get()
-  findAll(@Query() filters : FilterProductPaginationDto) {
+  findAll(@Query() filters: FilterProductPaginationDto) {
     return this.productService.findAll(filters);
+  }
+
+  @Get('offers')
+  findOfferProducts(@Query('limit', ParseIntPipe) limit: number) {
+    console.log('entró');
+    
+    return this.productService.findOfferProducts(limit);
   }
 
   @Post()
@@ -27,7 +39,7 @@ export class ProductController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number): Promise<Product> {
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<Product> {
     return this.productService.findOne(id);
   }
 
